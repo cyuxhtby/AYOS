@@ -14,7 +14,7 @@ contract AYOS is ERC721, ERC721URIStorage, Ownable {
     
     uint256 _interval;
     uint256 _lastTimeStamp;
-    uint256 _totalSupply = _tokenIdCounter.current();
+    uint256 public monthCounter;
     uint256 constant public MAX_SUPPLY = 100;
 
 
@@ -34,10 +34,12 @@ contract AYOS is ERC721, ERC721URIStorage, Ownable {
     _monthIpfsUris[12] = "ipfs://bafkreifathnpjir4p2jdrpdfgnezezvjpchcggnlyjr4itwwta7cmf7zf4";
     _interval = interval;
     _lastTimeStamp = block.timestamp;
+    monthCounter = 0;
     }
+
     function checkUpkeep(bytes calldata /* checkData */) external view returns (bool upkeepNeeded, bytes memory /* performData */) {
         upkeepNeeded = (block.timestamp - _lastTimeStamp) > _interval;
-        return (upkeepNeeded, ""); // explicit return statement
+        return (upkeepNeeded, ""); 
 
     }
 
@@ -50,24 +52,21 @@ contract AYOS is ERC721, ERC721URIStorage, Ownable {
 
     function safeMint(address to) public onlyOwner {
         uint256 tokenId = _tokenIdCounter.current();
+        require(tokenId < MAX_SUPPLY, "Max supply reached");
         _tokenIdCounter.increment();
-        if (_totalSupply < MAX_SUPPLY){
-            _safeMint(to, tokenId);
-            _setTokenURI(tokenId, _monthIpfsUris[0]); // Start with default URI
-        }
+        _safeMint(to, tokenId);
+        _setTokenURI(tokenId, _monthIpfsUris[monthCounter]); // Start with default URI
     }
+
 
     function _updateTokenUris() private {
-        uint256 monthIndex = (block.timestamp / 30 days) % 12;
-        
-        for (uint256 i = 1; i <= _totalSupply; i++) {
-        // Directly update the token URI without checking if the token exists.
-        // This assumes that all token IDs up to totalSupply have been minted.
-        _setTokenURI(i, _monthIpfsUris[monthIndex]);
+        uint256 totalTokens = _tokenIdCounter.current();
+        for (uint256 i = 0; i < totalTokens; i++) { // ids start at 0
+          _setTokenURI(i, _monthIpfsUris[monthCounter]);
         }
+        monthCounter++;
     }
 
-    
 
     // Override _burn function from ERC721 and ERC721URIStorage
     function _burn(uint256 tokenId) internal override(ERC721, ERC721URIStorage) {
@@ -78,8 +77,4 @@ contract AYOS is ERC721, ERC721URIStorage, Ownable {
     function tokenURI(uint256 tokenId) public view override (ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
     }
-
-    
-
-   
 }
